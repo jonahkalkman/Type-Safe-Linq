@@ -1,0 +1,16 @@
+{
+  "name": "school",
+  "version": "1.0.0",
+  "main": "index.js",
+  "scripts": {
+    "watch": "tsc -w -pretty",
+    "start": "node build/Select.js"
+  },
+  "author": "",
+  "license": "ISC",
+  "dependencies": {},
+  "devDependencies": {
+    "typescript": "^3.4.5"
+  },
+  "description": ""
+}

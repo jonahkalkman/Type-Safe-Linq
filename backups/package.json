@@ -1,0 +1,17 @@
+{
+  "name": "code",
+  "version": "1.0.0",
+  "description": "",
+  "main": "Assignment.js",
+  "dependencies": {},
+  "devDependencies": {
+    "typescript": "^3.4.5"
+  },
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "watch": "tsc -w -pretty",
+    "start": "node build/Assignmentv11.js"
+  },
+  "author": "",
+  "license": "ISC"
+}

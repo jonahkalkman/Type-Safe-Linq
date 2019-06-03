@@ -1,14 +1,14 @@
 interface Student {
     Name: string,
     Surname: string,
-    Grades:[{
-        Grade: number,
-        CourseId: number
-    }],
-    Test:[{
+    Grades:Array<{
+        Grade: number;
+        CourseId: number;
+    }>,
+    Test:Array<{
         test1: string,
         test2: string
-    }]
+    }>
 }
 
 type Fun<a,b> = {
@@ -43,13 +43,18 @@ const omit = <T, K extends keyof T>(keys: Array<keyof T>): Fun<T, Omit<T, K>> =>
         .reduce((res, o) => ({ ...res, ...o }), {}) as Omit<T, K>
     )
 
-type ExcludeNonArray<T> = { [K in keyof T]: T[K] extends Array<object> ? K : never }[keyof T];
+type PickArray<T> = { [K in keyof T]: T[K] extends Array<object> ? K : never }[keyof T];
+type KeysArray<T> = T extends Array<infer U> ? U : never;
+type Unit = {}
 
 type SelectableObject<T, R> = {
     object: T,
     result?: R,
-    select: <K extends keyof T>(...entities: Array<K>) => SelectableObject<Omit<T, K>, R & Pick<T, K>>,
-    include: <K extends ExcludeNonArray<T>>(entity: K, query: Fun<SelectableObject<K , R & Pick<T, K>>, SelectableObject<Omit<T, K>, R & Pick<T, K>>>) => SelectableObject<Omit<T, K>, R & Pick<T, K>>
+    select: <K extends keyof T>(...entities: Array<K>) => SelectableObject<Omit<T, K> , R & Pick<T, K>>,
+    include: <K extends PickArray<T>, P extends keyof KeysArray<T[K]>>(
+        entity: K,
+        query: (selectable: SelectableObject<KeysArray<T[K]>, Unit>) => SelectableObject<Omit<KeysArray<T[K]>, P>, Pick<KeysArray<T[K]>, P>>
+    ) => SelectableObject<Omit<T, K>, R & Pick<T, K>>
 }
 
 let SelectableObject = function<T, R>(object: T, result?: R) : SelectableObject<T, R> {
@@ -57,6 +62,7 @@ let SelectableObject = function<T, R>(object: T, result?: R) : SelectableObject<
         object: object,
         result: result,
         select: function<K extends keyof T>(...entities: Array<K>) : SelectableObject<Omit<T, K>, R & Pick<T, K>> {
+
             // Pick result
             const newResult: Pick<T, K> = pick<T,K>(entities).f(object)
             // Omit object
@@ -66,8 +72,13 @@ let SelectableObject = function<T, R>(object: T, result?: R) : SelectableObject<
 
             return SelectableObject<Omit<T, K>, R & Pick<T, K>>(newObject, mergedResult);
         },
-        include: function<K extends ExcludeNonArray<T>>(entity: K, query: Fun<SelectableObject<K, R & Pick<T, K>>, SelectableObject<Omit<T, K>, R & Pick<T, K>>>)  : SelectableObject<Omit<T, K>, R & Pick<T, K>>{
-            return null!;
+        include: function<K extends PickArray<T>, P extends keyof KeysArray<T[K]>>(
+            entity: K,
+            query: (selectable: SelectableObject<KeysArray<T[K]>, Unit>) => SelectableObject<Omit<KeysArray<T[K]>, P>, Pick<KeysArray<T[K]>, P>>
+        ) : SelectableObject<Omit<T, K>, R & Pick<T, K>> {
+
+            // TODO: Implementation Include
+            return null!
         }
     }
 }
@@ -80,11 +91,11 @@ let student: Student = ({
         CourseId: 1
     }],
     Test:[{
-        test1: 'test1',
-        test2: 'test2'
+        test1: 'test1value',
+        test2: 'test2value'
     }]
 });
 
 let selectableStudent = SelectableObject(student);
-let selection = selectableStudent.select('Name');
-console.log(selection);
+let selection = selectableStudent.select('Name').include('Grades', q => q.select('CourseId'));
+console.log('selection', selection);

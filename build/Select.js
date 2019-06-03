@@ -25,6 +25,7 @@ let SelectableObject = function (object, result) {
             return SelectableObject(newObject, mergedResult);
         },
         include: function (entity, query) {
+            // TODO: Implementation Include
             return null;
         }
     };
@@ -37,10 +38,10 @@ let student = ({
             CourseId: 1
         }],
     Test: [{
-            test1: 'test1',
-            test2: 'test2'
+            test1: 'test1value',
+            test2: 'test2value'
         }]
 });
 let selectableStudent = SelectableObject(student);
-let selection = selectableStudent.select('Name');
-console.log(selection);
+let selection = selectableStudent.select('Name').include('Grades', q => q.select('CourseId'));
+console.log('selection', selection);

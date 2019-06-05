@@ -25,8 +25,20 @@ let SelectableObject = function (object, result) {
             return SelectableObject(newObject, mergedResult);
         },
         include: function (entity, query) {
-            // TODO: Implementation Include
-            return null;
+            // Push entity: K into an Array: Array<K>
+            const entityArray = [];
+            entityArray.push(entity);
+            // Create a new object without entity: K
+            const newObject = omit(entityArray).f(object);
+            // Get childs from entity: K & move into array
+            const allKeysFromEntity = object[entity][0];
+            // Create selectableObject for query with allKeysFromEntity as object: T
+            const selectableEntity = SelectableObject(allKeysFromEntity);
+            // Get result from query with selectableEntity
+            const newResult = query(selectableEntity).result;
+            // Merge old with new result
+            const mergedResult = Object.assign({}, result, newResult);
+            return SelectableObject(newObject, mergedResult);
         }
     };
 };
@@ -43,5 +55,5 @@ let student = ({
         }]
 });
 let selectableStudent = SelectableObject(student);
-let selection = selectableStudent.select('Name').include('Grades', q => q.select('CourseId'));
+let selection = selectableStudent.select('Name').include('Grades', q => q.select('CourseId')).result;
 console.log('selection', selection);

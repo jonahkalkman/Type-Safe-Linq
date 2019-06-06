@@ -21,15 +21,16 @@ let fun = <a,b>(f : (_:a) => b) : Fun<a,b> => ({
     then : function<c>(this:Fun<a,b>, g:Fun<b,c>) : Fun<a,c> {
         return then(this, g)
     }
-})
+});
 
 const then = <a,b,c>(f:Fun<a,b>, g:Fun<b,c>) : Fun<a,c> => fun<a,c>(a => g.f(f.f(a)))
 
-const pick = <T, K extends keyof T>(keys: Array<K>): Fun<T, Pick<T, K>> =>
+const pick = <T, K extends keyof T>(keys: Array<K>): Fun<T, Pick<T, K>> => (
     fun(object =>
         keys.map(key => key in object ? { [key]: object[key] } : {})
         .reduce((res, o) => ({ ...res, ...o }), {}) as Pick<T, K>
     )
+);
 
 const getKeys = <T>(object: T): Array<keyof T> => Object.keys(object) as Array<keyof T>
 
@@ -37,31 +38,32 @@ type Omit<T, Conditions extends keyof T> = Pick<T, {
     [K in keyof T]: K extends Conditions ? never : K
 }[keyof T]>
 
-const omit = <T, K extends keyof T>(keys: Array<keyof T>): Fun<T, Omit<T, K>> =>
+const omit = <T, K extends keyof T>(keys: Array<keyof T>): Fun<T, Omit<T, K>> => (
     fun(object =>
         getKeys(object).map(key => (keys as Array<keyof T>).includes(key) ? {} : { [key]: object[key] })
         .reduce((res, o) => ({ ...res, ...o }), {}) as Omit<T, K>
     )
+);
 
-type PickArray<T> = { [K in keyof T]: T[K] extends Array<object> ? K : never }[keyof T];
+type PickArrays<T> = { [K in keyof T]: T[K] extends Array<object> ? K : never }[keyof T];
 type KeysArray<T> = T extends Array<infer U> ? U : never;
 type Unit = {}
 
-type SelectableObject<T, R> = {
+type QueryableObject<T, R> = {
     object: T,
     result?: R,
-    select: <K extends keyof T>(...entities: Array<K>) => SelectableObject<Omit<T, K> , R & Pick<T, K>>,
-    include: <K extends PickArray<T>, P extends keyof KeysArray<T[K]>>(
+    select: <K extends keyof T>(...entities: Array<K>) => QueryableObject<Omit<T, K> , R & Pick<T, K>>,
+    include: <K extends PickArrays<T>, P extends keyof KeysArray<T[K]>>(
         entity: K,
-        query: (selectable: SelectableObject<KeysArray<T[K]>, Unit>) => SelectableObject<Omit<KeysArray<T[K]>, P>, Pick<KeysArray<T[K]>, P>>
-    ) => SelectableObject<Omit<T, K>, R & Pick<KeysArray<T[K]>, P>>
+        query: (selectable: QueryableObject<KeysArray<T[K]>, Unit>) => QueryableObject<Omit<KeysArray<T[K]>, P>, Pick<KeysArray<T[K]>, P>>
+    ) => QueryableObject<Omit<T, K>, R & Pick<KeysArray<T[K]>, P>>
 }
 
-let SelectableObject = function<T, R>(object: T, result?: R) : SelectableObject<T, R> {
+let QueryableObject = function<T, R>(object: T, result?: R) : QueryableObject<T, R> {
     return {
         object: object,
         result: result,
-        select: function<K extends keyof T>(...entities: Array<K>) : SelectableObject<Omit<T, K>, R & Pick<T, K>> {
+        select: function<K extends keyof T>(...entities: Array<K>) : QueryableObject<Omit<T, K>, R & Pick<T, K>> {
             // Pick result
             const newResult: Pick<T, K> = pick<T,K>(entities).f(object)
             // Omit object
@@ -69,12 +71,12 @@ let SelectableObject = function<T, R>(object: T, result?: R) : SelectableObject<
             // Merge result
             const mergedResult: R & Pick<T, K> = Object.assign({}, result, newResult);
 
-            return SelectableObject<Omit<T, K>, R & Pick<T, K>>(newObject, mergedResult);
+            return QueryableObject<Omit<T, K>, R & Pick<T, K>>(newObject, mergedResult);
         },
-        include: function<K extends PickArray<T>, P extends keyof KeysArray<T[K]>>(
+        include: function<K extends PickArrays<T>, P extends keyof KeysArray<T[K]>>(
             entity: K,
-            query: (selectable: SelectableObject<KeysArray<T[K]>, Unit>) => SelectableObject<Omit<KeysArray<T[K]>, P>, Pick<KeysArray<T[K]>, P>>
-        ) : SelectableObject<Omit<T, K>, R & Pick<KeysArray<T[K]>, P>> {
+            query: (selectable: QueryableObject<KeysArray<T[K]>, Unit>) => QueryableObject<Omit<KeysArray<T[K]>, P>, Pick<KeysArray<T[K]>, P>>
+        ) : QueryableObject<Omit<T, K>, R & Pick<KeysArray<T[K]>, P>> {
 
             // Push entity: K into an Array: Array<K>
             const entityArray: Array<K> = [];
@@ -86,8 +88,8 @@ let SelectableObject = function<T, R>(object: T, result?: R) : SelectableObject<
             // Get childs from entity: K & move into array
             const allKeysFromEntity = (<any>object)[entity][0];
 
-            // Create selectableObject for query with allKeysFromEntity as object: T
-            const selectableEntity: SelectableObject<KeysArray<T[K]>, Unit> = SelectableObject(allKeysFromEntity);
+            // Create QueryableObject for query with allKeysFromEntity as object: T
+            const selectableEntity: QueryableObject<KeysArray<T[K]>, Unit> = QueryableObject(allKeysFromEntity);
 
             // Get result from query with selectableEntity
             const newResult = query(selectableEntity).result;
@@ -95,7 +97,7 @@ let SelectableObject = function<T, R>(object: T, result?: R) : SelectableObject<
             // Merge old with new result
             const mergedResult: R & Pick<KeysArray<T[K]>, P> = Object.assign({}, result, newResult);
 
-            return SelectableObject<Omit<T, K>, R & Pick<KeysArray<T[K]>, P>>(newObject, mergedResult);
+            return QueryableObject<Omit<T, K>, R & Pick<KeysArray<T[K]>, P>>(newObject, mergedResult);
         }
     }
 }
@@ -113,6 +115,6 @@ let student: Student = ({
     }]
 });
 
-let selectableStudent = SelectableObject(student);
+let selectableStudent = QueryableObject(student);
 let selection = selectableStudent.select('Name').include('Grades', q => q.select('CourseId')).result;
 console.log('selection', selection);

@@ -115,6 +115,27 @@ let student: Student = ({
     }]
 });
 
+let student2: Student = ({
+    Name: 'Jonah',
+    Surname: 'Kalkman',
+    Grades: [{
+        Grade: 10,
+        CourseId: 1
+    }],
+    Test:[{
+        test1: 'test1value',
+        test2: 'test2value'
+    }]
+});
+
+// let students = [student, student2];
+
+// students.forEach(element => {
+//     let selectableStudent = QueryableObject(element);
+//     let selection = selectableStudent.select('Name').include('Grades', q => q.select('CourseId')).result;
+//     console.log('selection', selection);
+// });
+
 let selectableStudent = QueryableObject(student);
 let selection = selectableStudent.select('Name').include('Grades', q => q.select('CourseId')).result;
 console.log('selection', selection);

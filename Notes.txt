@@ -1,6 +1,6 @@
 VRAGEN AAN DOCENT:
   Fout in returntype van include:
-  Hoe kunnen we de keys van een array van de array afhalen en deze array   met keys daarna  doorsturen? (Op dit moment kunnen we de hele array doorsturen   en de keys van de array afhalen, maar niet in combinatie met elkaar) ->     BELANGRIJK!!
+  Hoe kunnen we de keys van een array afhalen en deze array mét de keys daarna  doorsturen? (Op dit moment kunnen we de hele array doorsturen   en de keys van de array afhalen, maar niet in combinatie met elkaar) ->     BELANGRIJK!!
 
 
 Vragen voor docent SWE

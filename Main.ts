@@ -56,10 +56,10 @@ type QueryableObject<T, R> = {
     object: T,
     result: R,
     select: <K extends keyof T>(...entities: Array<K>) => QueryableObject<omit<T, K> , R & Pick<T, K>>,
-    include: <K extends keyof SubType<T>, P extends keyof KeysArray<T, K>>(
+    include: <K extends keyof SubType<T>, s, r>(
         entity: K,
-        query: (selectable: QueryableObject<KeysArray<T,K>, Unit>) => QueryableObject<omit<KeysArray<T, K>, P>, Pick<KeysArray<T, K>, P>>
-    ) => QueryableObject<omit<T, K>, R & { [x: string]: Pick<KeysArray<T, K>, P> | Object }>
+        query: (selectable: QueryableObject<KeysArray<T, K>, Unit>) => QueryableObject<s, r>
+    ) => QueryableObject<omit<T, K>, R & { [key in K]: Array<r> }>
 }
 
 type SelectableObject<T> = {
@@ -97,10 +97,10 @@ let QueryableObject = function<T, R>(object: T, result: R) : QueryableObject<T, 
 
             return QueryableObject<omit<T, K>, R & Pick<T, K>>(newObject, mergedResult);
         },
-        include: function<K extends keyof SubType<T>, P extends keyof KeysArray<T, K>>(
+        include: function<K extends keyof SubType<T>, s, r>(
             entity: K,
-            query: (selectable: QueryableObject<KeysArray<T,K>, Unit>) => QueryableObject<omit<KeysArray<T, K>, P>, Pick<KeysArray<T, K>, P>>
-        ) : QueryableObject<omit<T, K>, R & { [x: string]: Pick<KeysArray<T, K>, P> | Object }> {
+            query: (selectable: QueryableObject<KeysArray<T,K>, Unit>) => QueryableObject<s, r>
+        ) : QueryableObject<omit<T, K>, R & { [key in K]: Array<r> }> {
 
             // Push entity: K into an Array: Array<K>
             const entityArray: Array<K> = [];
@@ -131,10 +131,11 @@ let QueryableObject = function<T, R>(object: T, result: R) : QueryableObject<T, 
             // console.log('test', test);
 
 
+            //SPREAD OPERATORS?
             // Merge old with new result
-            const mergedResult: R & { [x: string]: Pick<KeysArray<T, K>, P> } = Object.assign({}, result, newResult);
+            const mergedResult: R & { [key in K]: Array<r> } = Object.assign({}, result, newResult);
 
-            return QueryableObject<omit<T, K>, R & { [x: string]: Pick<KeysArray<T, K>, P> }>(newObject, mergedResult);
+            return QueryableObject<omit<T, K>, R & { [key in K]: Array<r> }>(newObject, mergedResult);
         }
     }
 }
@@ -168,9 +169,11 @@ let student2: Student = ({
 // Fix double include
 
 let selectableStudent = SelectableObject(student);
-let selection = selectableStudent.select('Grades').include('Test', q => q.select('test1'));
+let selection = selectableStudent.select('Grades').include('Test', q => q.select('test1')).result;
 
+if (selection != undefined)
+    selection.Test[0].test1
+    console.log('selection', selection);
 // selection.
-//     selection.Grades[0].CourseId //ok
-//     selection.Grades[0].Grade //ok
-// console.log('selection', selection);
+    // selection.Grades[0].CourseId //ok
+    // selection.Grades[0].Grade //ok

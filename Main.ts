@@ -116,24 +116,14 @@ let QueryableObject = function<T, R>(object: T, result: R) : QueryableObject<T, 
             const selectableEntity: QueryableObject<KeysArray<T, K>, Unit> = QueryableObject(allKeysFromEntity, Unit);
 
             // Get result from query with selectableEntity
-            const selectedEntities : Pick<KeysArray<T, K>, P> = query(selectableEntity).result;
+            const selectedEntities: r = query(selectableEntity).result;
 
             // // Compose result into array
-            // const composedResult : Pick<KeysArray<T, K>, P>[] = [selectedEntities];
+            const composedResult: r[] = [selectedEntities];
+            const newResult = { [entity]: composedResult } as { [key in K]: Array<r> }
 
-            const newResult = { [entity]: selectedEntities }
-
-            // console.log(ob[entity])
-            // const test = { [entity]: [
-            //     selectedEntities
-            // ]};
-
-            // console.log('test', test);
-
-
-            //SPREAD OPERATORS?
             // Merge old with new result
-            const mergedResult: R & { [key in K]: Array<r> } = Object.assign({}, result, newResult);
+            const mergedResult = Object.assign({}, result, newResult);
 
             return QueryableObject<omit<T, K>, R & { [key in K]: Array<r> }>(newObject, mergedResult);
         }

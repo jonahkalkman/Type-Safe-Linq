@@ -1,10 +1,9 @@
 #Notes:
   - Voor orderBy - array.sort gebruiken (volgens sibren)
-  - Fix select mergedresult implementation
-  - Fix include multiple implementation
+  - Fix type output include for type inference
+  - Array map 
 
 #ToDo:
-  - Multiple students Select and Include
   - Double include not working
 
 

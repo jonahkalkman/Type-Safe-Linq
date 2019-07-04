@@ -1,9 +1,8 @@
 #Notes:
   - Voor orderBy - array.sort gebruiken (volgens sibren)
-  - Fix type output include for type inference
-  - Array map 
+  - Array map
 
 #ToDo:
-  - Double include not working
+  - Double include not working X
 
 

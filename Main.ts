@@ -56,27 +56,30 @@ type SubType<T> = Pick<T, {
 type KeysArray<T, K extends keyof SubType<T>> = T[K] extends Array<infer U> ? U : never;
 type Unit = {}
 let Unit : Unit = {}
-type SelectableObject<T> = {
+type SelectableObject<T, B> = {
     object: Array<T>,
-    select: <K extends keyof T>(...entities: Array<K>) => QueryableObject<omit<T, K> , [Pick<T, K>]>
+    select: <K extends keyof T>(...entities: Array<K>) => QueryableObject<omit<T, K> , [Pick<T, K>], Pick<T,K>>
 }
 
-type QueryableObject<T, R> = {
+type QueryableObject<T, R, B> = {
     object: Array<T>,
     result: R,
-    select: <K extends keyof T>(...entities: Array<K>) => QueryableObject<omit<T, K> , R & [Pick<T, K>]>,
-    include: <K extends keyof SubType<T>, s, r>(
+    select: <K extends keyof T>(...entities: Array<K>) => QueryableObject<omit<T, K> , R & [Pick<T, K>], B & Pick<T,K>>,
+    include: <K extends keyof SubType<T>, s, r, b>(
         entity: K,
-        query: (selectable: SelectableObject<KeysArray<T, K>>) => QueryableObject<s, r>
-    ) => QueryableObject<omit<T, K>, R & [{ [key in K]: r }]>,
-    // orderBy: (...entities: Array<K>) =>
+        query: (selectable: SelectableObject<KeysArray<T, K>, B>) => QueryableObject<s, r, b>
+    ) => QueryableObject<omit<T, K>, R & [{ [key in K]: r }], B & b>,
+    orderBy: <H extends keyof B>(type: 'ASC' | 'DESC', ...entities: Array<H>) => Result<R>
 }
 
+type Result<R> = {
+    result: R
+}
 
-let SelectableObject = function<T, R>(object: Array<T>) : SelectableObject<T> {
+let SelectableObject = function<T, B>(object: Array<T>) : SelectableObject<T, B> {
     return {
         object: object,
-        select: function<K extends keyof T>(...entities: Array<K>) : QueryableObject<omit<T, K>, [Pick<T, K>]> {
+        select: function<K extends keyof T>(...entities: Array<K>) : QueryableObject<omit<T, K>, [Pick<T, K>], B> {
 
             // Pick result
             let res = <any>([]);
@@ -90,16 +93,16 @@ let SelectableObject = function<T, R>(object: Array<T>) : SelectableObject<T> {
                 newObject.push(omit<T, K>(entities).f(element));
             });
 
-            return QueryableObject<omit<T, K>, [Pick<T, K>]>(newObject, res);
+            return QueryableObject<omit<T, K>, [Pick<T, K>], B>(newObject, res);
         }
     }
 }
 
-let QueryableObject = function<T, R>(object: Array<T>, result: R) : QueryableObject<T, R> {
+let QueryableObject = function<T, R, B>(object: Array<T>, result: R) : QueryableObject<T, R, B> {
     return {
         object: object,
         result: result,
-        select: function<K extends keyof T>(...entities: Array<K>) : QueryableObject<omit<T, K>, R & [Pick<T, K>]> {
+        select: function<K extends keyof T>(...entities: Array<K>) : QueryableObject<omit<T, K>, R & [Pick<T, K>], B> {
 
             // Pick result
             let newResult = <any>([])
@@ -122,12 +125,12 @@ let QueryableObject = function<T, R>(object: Array<T>, result: R) : QueryableObj
             });
 
             // Merge result
-            return QueryableObject<omit<T, K>, R & [Pick<T, K>]>(newObject, res);
+            return QueryableObject<omit<T, K>, R & [Pick<T, K>], B>(newObject, res);
         },
         include: function<K extends keyof SubType<T>, s, r>(
             entity: K,
-            query: (selectable: SelectableObject<KeysArray<T,K>>) => QueryableObject<s, r>
-        ) : QueryableObject<omit<T, K>, R & [{ [key in K]: r }]> {
+            query: (selectable: SelectableObject<KeysArray<T,K>, B>) => QueryableObject<s, r, B>
+        ) : QueryableObject<omit<T, K>, R & [{ [key in K]: r }], B> {
 
             // Push entity: K into an Array: Array<K>
             const entityArray: Array<K> = [];
@@ -146,7 +149,7 @@ let QueryableObject = function<T, R>(object: Array<T>, result: R) : QueryableObj
             })
 
             // Create QueryableObject for query with allKeysFromEntity as object: T
-            const selectableEntity: SelectableObject<KeysArray<T, K>> = SelectableObject(allKeysFromEntity);
+            const selectableEntity: SelectableObject<KeysArray<T, K>, B> = SelectableObject(allKeysFromEntity);
 
             // Get result from query with selectableEntity
             const selectedEntities = query(selectableEntity).result;
@@ -157,16 +160,15 @@ let QueryableObject = function<T, R>(object: Array<T>, result: R) : QueryableObj
 
             let res = <any>([]);
             for(let i = 0; i < object.length; i++){
-                console.log('res', res)
                 res[i] = {
                     ...(<any>result)[i],
                     ...{ [entity]:[(<any>selectedEntities)[i]] } as {[key in K]: Array<r> }
                 }
             }
-
-            // console.log('res',res)
-
-            return QueryableObject<omit<T, K>, R & [{ [key in K]: r }]>(newObject, res);
+            return QueryableObject<omit<T, K>, R & [{ [key in K]: r }], B>(newObject, res);
+        },
+        orderBy: function<H extends keyof B>(type: 'ASC' | 'DESC', ...entities: Array<H>): Result<R> {
+            return null!
         }
     }
 }
@@ -198,8 +200,8 @@ let student2: Student = ({
 });
 
 let students =[student, student2]
-let selectableStudent = SelectableObject(students);
-let selection = JSON.stringify(selectableStudent.select("Name").include('Test', q => q.select('test1', 'test2')).result, null, 4)
+let selectableStudent = SelectableObject<Student, Student>(students);
+let selection = JSON.stringify(selectableStudent.select("Name").select('Surname').include('Grades', g => g.select('CourseId')).orderBy('ASC', 'Surname').result[0].Grades[0], null, 4)
 console.log("result1", selection)
 
 // console.log("result2", selection.result[0].Test[0].test1)

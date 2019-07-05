@@ -53,18 +53,21 @@ type SubType<T> = Pick<T, {
     [K in keyof T]: T[K] extends Array<object> ? K : never
 }[keyof T]>;
 
+type ArrayObject<T, K extends keyof T> =
+    K extends keyof SubType<T> ? KeysArray<T, K> : Pick<T, K>
+
 type KeysArray<T, K extends keyof SubType<T>> = T[K] extends Array<infer U> ? U : never;
 type Unit = {}
 let Unit : Unit = {}
 type SelectableObject<T, B> = {
     object: Array<T>,
-    select: <K extends keyof T>(...entities: Array<K>) => QueryableObject<omit<T, K> , [Pick<T, K>], Pick<T,K>>
+    select: <K extends keyof T>(...entities: Array<K>) => QueryableObject<omit<T, K> , [Pick<T, K>], ArrayObject<T,K>>
 }
 
 type QueryableObject<T, R, B> = {
     object: Array<T>,
     result: R,
-    select: <K extends keyof T>(...entities: Array<K>) => QueryableObject<omit<T, K> , R & [Pick<T, K>], B & Pick<T,K>>,
+    select: <K extends keyof T>(...entities: Array<K>) => QueryableObject<omit<T, K> , R & [Pick<T, K>], B & ArrayObject<T,K>>,
     include: <K extends keyof SubType<T>, s, r, b>(
         entity: K,
         query: (selectable: SelectableObject<KeysArray<T, K>, B>) => QueryableObject<s, r, b>
@@ -201,7 +204,7 @@ let student2: Student = ({
 
 let students =[student, student2]
 let selectableStudent = SelectableObject<Student, Student>(students);
-let selection = JSON.stringify(selectableStudent.select("Name").select('Surname').include('Grades', g => g.select('CourseId')).orderBy('ASC', 'Surname').result[0].Grades[0], null, 4)
+let selection = JSON.stringify(selectableStudent.select('Name').select('Test').include('Grades', q => q.select('CourseId')).orderBy('ASC', 'test1').result[0].Grades[0], null, 4)
 console.log("result1", selection)
 
 // console.log("result2", selection.result[0].Test[0].test1)

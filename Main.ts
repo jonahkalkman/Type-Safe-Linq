@@ -87,8 +87,24 @@ let SelectableObject = function<T, B>(object: Array<T>) : SelectableObject<T, B>
             // Pick result
             let res = <any>([]);
             for(let i = 0; i < object.length; i++){
-                res[i] = pick<T,K>(entities).f(object[i])
+                // If multiple items inside Grades or Test
+                if(Array.isArray(object[i]) && Object.keys(object[i]).length > 1){
+                    let subArray: any = object[i] as any
+                    res[i] = []
+                    const includeResult = res[i]
+                    for(let g = 0; g < subArray.length; g++){
+                        const test = Object.create(res[i]);
+                        const pickedItem = pick<T,K>(entities).f(subArray[g]);
+                        res[i].push(pick<T,K>(entities).f(subArray[g]))
+
+                    }
+                }
+                else {
+                    res[i] = pick<T,K>(entities).f(object[i])
+                }
             }
+
+            console.log(res)
 
             // Omit object
             const newObject = <any>([])
@@ -112,7 +128,6 @@ let QueryableObject = function<T, R, B>(object: Array<T>, result: R) : Queryable
                 object.forEach(element => {
                 newResult.push(pick<T,K>(entities).f(element));
             });
-
             let res = <any>([]);
             for(let i = 0; i < object.length; i++){
                 res[i] = {
@@ -148,16 +163,15 @@ let QueryableObject = function<T, R, B>(object: Array<T>, result: R) : Queryable
             // Get childs from entity: K & move into array
             const allKeysFromEntity = <any>([])
             object.forEach(element => {
-                allKeysFromEntity.push((<any>element)[entity][0]);
+                allKeysFromEntity.push((<any>element)[entity]);
             })
 
-            // Create QueryableObject for query with allKeysFromEntity as object: T
+            // Create SelectableObject for query with allKeysFromEntity as object: T
             const selectableEntity: SelectableObject<KeysArray<T, K>, B> = SelectableObject(allKeysFromEntity);
 
             // Get result from query with selectableEntity
             const selectedEntities = query(selectableEntity).result;
-            // console.log(selectedEntities)
-
+            console.log('dwdwd',(<any>selectedEntities)[0])
             // Compose result into array
             const composedResult: r[] = [selectedEntities];
 
@@ -165,12 +179,43 @@ let QueryableObject = function<T, R, B>(object: Array<T>, result: R) : Queryable
             for(let i = 0; i < object.length; i++){
                 res[i] = {
                     ...(<any>result)[i],
-                    ...{ [entity]:[(<any>selectedEntities)[i]] } as {[key in K]: Array<r> }
+                    ...{ [entity]:(<any>selectedEntities)[i] } as {[key in K]: Array<r> }
                 }
             }
+
+
             return QueryableObject<omit<T, K>, R & [{ [key in K]: r }], B>(newObject, res);
         },
-        orderBy: function<H extends keyof B>(type: 'ASC' | 'DESC', ...entities: Array<H>): Result<R> {
+        orderBy: function<H extends keyof B>(type: 'ASC' | 'DESC', entity: H): Result<R> {
+                console.log((<any>result).sort(dynamicSort(entity)));
+                function dynamicSort(property: any) {
+                    let resres = result as any
+                    var sortOrder = type == 'ASC' ? 1 : -1;
+
+                    return function (a: any ,b: any) {
+                        // TODO: if not a[property] then check every Array<Object> and trow into dynamicSort
+                        // if(a[property] == undefined) {
+                        //     for(let f = 0; f < Object.keys(resres).length; f++){
+                        //         Object.keys(resres[f]).forEach(element => {
+                        //             console.log(resres[f][element]);
+
+                        //             if(resres[f][element][0][property]){
+                        //                 // (<any>a).sort(dynamicSort(property))
+                        //             }
+                        //         })
+                        //     }
+
+                        //     result.forEach( element => {
+                        //         // console.log(element)
+                        //         if(element[property] != undefined){
+                        //             (<any>a).sort(dynamicSort(property))
+                        //         }
+                        //     });
+                        // }
+                        var res = (a[property] < b[property]) ? -1 : (a[property] > b[property]) ? 1 : 0;
+                        return res * sortOrder;
+                    }
+                }
             return null!
         }
     }
@@ -180,34 +225,50 @@ let student: Student = ({
     Name: 'Jonah',
     Surname: 'Kalkman',
     Grades: [{
-        Grade: 10,
-        CourseId: 20
-    }],
+        Grade: 1,
+        CourseId: 1
+    },
+    {
+        Grade: 2,
+        CourseId: 2
+    }
+    ],
     Test:[{
-        test1: 'test1value',
-        test2: 'test2value'
-    }]
+        test1: 'a1',
+        test2: 'a2'
+    },
+    {
+        test1: 'b1',
+        test2: 'b1'
+    }
+    ]
 });
 
 let student2: Student = ({
     Name: 'Henk',
-    Surname: 'Kalkmwwwan',
+    Surname: 'Pieters',
     Grades: [{
-        Grade: 10,
-        CourseId: 10,
+        Grade: 3,
+        CourseId: 3,
+    },
+    {
+        Grade: 4,
+        CourseId: 4,
     }],
     Test:[{
-        test1: 'test122value',
-        test2: 'test222value'
+        test1: 'c1',
+        test2: 'c2'
+    },
+    {
+        test1: 'd1',
+        test2: 'd2'
     }]
 });
 
 let students =[student, student2]
 let selectableStudent = SelectableObject<Student, Student>(students);
-let selection = JSON.stringify(selectableStudent.select('Name').select('Test').include('Grades', q => q.select('CourseId')).orderBy('ASC', 'test1').result[0].Grades[0], null, 4)
-console.log("result1", selection)
-
-// console.log("result2", selection.result[0].Test[0].test1)
+let selection = JSON.stringify(selectableStudent.select('Test').include('Grades', q => q.select('CourseId')).result[0].Grades[0].CourseId, null, 4)
+console.log('selection', selection)
 
 // (property) result: [Pick<Student, "Name">] & [Pick<Pick<Student, "Surname" | "Grades" | "Test">, "Surname">] & {
 //     Grades: [Pick<Grades, "Grade" | "CourseId">][];

@@ -191,7 +191,6 @@ let QueryableObject = function<T, R, B>(object: Array<T>, result: R) : Queryable
 
             // Get result from query with selectableEntity
             const selectedEntities = query(selectableEntity).result;
-            // console.log('dwdwd',(<any>selectedEntities)[0])
             // Compose result into array
             const composedResult: r[] = [selectedEntities];
 

@@ -104,7 +104,6 @@ let SelectableObject = function<T, B>(object: Array<T>) : SelectableObject<T, B>
                 }
             }
 
-            console.log(res)
 
             // Omit object
             const newObject = <any>([])
@@ -171,7 +170,6 @@ let QueryableObject = function<T, R, B>(object: Array<T>, result: R) : Queryable
 
             // Get result from query with selectableEntity
             const selectedEntities = query(selectableEntity).result;
-            console.log('dwdwd',(<any>selectedEntities)[0])
             // Compose result into array
             const composedResult: r[] = [selectedEntities];
 
@@ -187,7 +185,6 @@ let QueryableObject = function<T, R, B>(object: Array<T>, result: R) : Queryable
             return QueryableObject<omit<T, K>, R & [{ [key in K]: r }], B>(newObject, res);
         },
         orderBy: function<H extends keyof B>(type: 'ASC' | 'DESC', entity: H): Result<R> {
-                console.log((<any>result).sort(dynamicSort(entity)));
                 function dynamicSort(property: any) {
                     let resres = result as any
                     var sortOrder = type == 'ASC' ? 1 : -1;
@@ -267,7 +264,7 @@ let student2: Student = ({
 
 let students =[student, student2]
 let selectableStudent = SelectableObject<Student, Student>(students);
-let selection = JSON.stringify(selectableStudent.select('Test').include('Grades', q => q.select('CourseId')).result[0].Grades[0].CourseId, null, 4)
+let selection = JSON.stringify(selectableStudent.select('Name').select('Surname').include('Grades', g => g.select('CourseId')).include('Test', t => t.select('test1')).result, null, 4)
 console.log('selection', selection)
 
 // (property) result: [Pick<Student, "Name">] & [Pick<Pick<Student, "Surname" | "Grades" | "Test">, "Surname">] & {

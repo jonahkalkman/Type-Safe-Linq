@@ -73,25 +73,25 @@ let Unit : Unit = {}
 // used to make sure that the first argument is a select
 type SelectableObject<T, B> = {
     object: Array<T>,
-    select: <K extends keyof T>(...entities: Array<K>) => QueryableObject<omit<T, K> , [Pick<T, K>], excludeArray<Pick<T,K>>>
+    select: <K extends keyof T>(...entities: Array<K>) => QueryableObject<omit<T, K>, Pick<T, K>, excludeArray<Pick<T,K>>>
 }
 
 type QueryableObject<T, R, B> = {
     object: Array<T>,
-    result: R,
-    select: <K extends keyof T>(...entities: Array<K>) => QueryableObject<omit<T, K> , R & [Pick<T, K>], B & excludeArray<Pick<T,K>>>,
+    result: Array<R>,
+    select: <K extends keyof T>(...entities: Array<K>) => QueryableObject<omit<T, K> , R & Pick<T, K>, B & excludeArray<Pick<T,K>>>,
     include: <K extends keyof SubType<T>, s, r, b>(
         entity: K,
         query: (selectable: SelectableObject<KeysArray<T, K>, B>) => QueryableObject<s, r, b> | Result<r>
-    ) => QueryableObject<omit<T, K>, R & [{ [key in K]: r }], B>,
+    ) => QueryableObject<omit<T, K>, R & { [key in K]: Array<r> }, B>,
     orderBy: <H extends keyof B>(type: 'ASC' | 'DESC', entity: H) => Result<R>
 }
 
 type Result<R> = {
-    result: R
+    result: Array<R>
 }
 
-let Result = function<R>(result: R) : Result<R> {
+let Result = function<R>(result: Array<R>) : Result<R> {
     return {
         result: result
     }
@@ -100,7 +100,7 @@ let Result = function<R>(result: R) : Result<R> {
 let SelectableObject = function<T, B>(object: Array<T>) : SelectableObject<T, B> {
     return {
         object: object,
-        select: function<K extends keyof T>(...entities: Array<K>) : QueryableObject<omit<T, K>, [Pick<T, K>], excludeArray<Pick<T,K>>> {
+        select: function<K extends keyof T>(...entities: Array<K>) : QueryableObject<omit<T, K>, Pick<T, K>, excludeArray<Pick<T,K>>> {
 
             // Pick result
             let res = <any>([]);
@@ -124,17 +124,17 @@ let SelectableObject = function<T, B>(object: Array<T>) : SelectableObject<T, B>
                 newObject.push(omit<T, K>(entities).f(element));
             });
 
-            return QueryableObject<omit<T, K>, [Pick<T, K>], excludeArray<Pick<T,K>>>(newObject, res);
+            return QueryableObject<omit<T, K>, Pick<T, K>, excludeArray<Pick<T,K>>>(newObject, res);
         }
     }
 }
 
 
-let QueryableObject = function<T, R, B>(object: Array<T>, result: R) : QueryableObject<T, R, B> {
+let QueryableObject = function<T, R, B>(object: Array<T>, result: Array<R>) : QueryableObject<T, R, B> {
     return {
         object: object,
         result: result,
-        select: function<K extends keyof T>(...entities: Array<K>) : QueryableObject<omit<T, K>, R & [Pick<T, K>], B & excludeArray<Pick<T,K>>> {
+        select: function<K extends keyof T>(...entities: Array<K>) : QueryableObject<omit<T, K>, R & Pick<T, K>, B & excludeArray<Pick<T,K>>> {
 
             console.log('entities', entities)
             let res = <any>([]);
@@ -165,12 +165,12 @@ let QueryableObject = function<T, R, B>(object: Array<T>, result: R) : Queryable
             });
 
             // Merge result
-            return QueryableObject<omit<T, K>, R & [Pick<T, K>], B & excludeArray<T>>(newObject, res);
+            return QueryableObject<omit<T, K>, R & Pick<T, K>, B & excludeArray<T>>(newObject, res);
         },
         include: function<K extends keyof SubType<T>, s, r, b>(
             entity: K,
             query: (selectable: SelectableObject<KeysArray<T, K>, B>) => QueryableObject<s, r, b> | Result<r>
-        ) : QueryableObject<omit<T, K>, R & [{ [key in K]: r }], B> {
+        ) : QueryableObject<omit<T, K>, R & { [key in K]: Array<r> }, B> {
 
             // Push entity: K into an Array: Array<K>
             const entityArray: Array<K> = [];
@@ -194,7 +194,7 @@ let QueryableObject = function<T, R, B>(object: Array<T>, result: R) : Queryable
             // Get result from query with selectableEntity
             const selectedEntities = query(selectableEntity).result;
             // Compose result into array
-            const composedResult: r[] = [selectedEntities];
+            const composedResult: r[] = selectedEntities;
 
             let res = <any>([]);
             for(let i = 0; i < object.length; i++){
@@ -204,13 +204,12 @@ let QueryableObject = function<T, R, B>(object: Array<T>, result: R) : Queryable
                 }
             }
 
-
-            return QueryableObject<omit<T, K>, R & [{ [key in K]: r }], B>(newObject, res);
+            return QueryableObject<omit<T, K>, R & { [key in K]: Array<r> }, B>(newObject, res);
         },
         orderBy: function<H extends keyof B>(type: 'ASC' | 'DESC', entity: H): Result<R> {
 
             const resres = result as any
-            let orderedResult: R = result;
+            let orderedResult: Array<R> = result;
             if(resres[0][entity]){
                 // console.log('result',result)
                 orderedResult = (<any>result).sort(dynamicSort(entity));
@@ -336,16 +335,5 @@ let student4: Student = ({
 
 let students =[student, student2, student3, student4]
 let selectableStudent = SelectableObject<Student, Student>(students);
-let selection = JSON.stringify(selectableStudent.select('Name').select('Surname', 'StudentNumber').include('Grades', g => g.select('Grade').orderBy('DESC', 'Grade')).include('Test', t => t.select('test1').orderBy('ASC', 'test1')).orderBy('ASC', 'Name').result, null, 4)
-console.log('selection', selection)
-
-// (property) result: [Pick<Student, "Name">] & [Pick<Pick<Student, "Surname" | "Grades" | "Test">, "Surname">] & {
-//     Grades: [Pick<Grades, "Grade" | "CourseId">][];
-// }[]
-// console.log('selectie', (<any>selection[0].Name))
-// if (selection != undefined)
-//     selection.Test[0].test1
-//     console.log('selection', selection);
-// selection.
-    // selection.Grades[0].CourseId //ok
-    // selection.Grades[0].Grade //ok
+let selection = JSON.stringify(selectableStudent.select('Name').select('Surname', 'StudentNumber').select('Test').include('Grades', g => g.select('Grade').orderBy('DESC', 'Grade')).orderBy('ASC', 'Name').result, null, 4)
+console.log('selection', selection);

@@ -1,16 +1,18 @@
 {
-  "name": "school",
+  "name": "typesafelinq",
   "version": "1.0.0",
-  "main": "index.js",
-  "scripts": {
-    "watch": "tsc -w -pretty",
-    "start": "node build/Select.js"
-  },
-  "author": "",
-  "license": "ISC",
+  "description": "type safe linq",
+  "main": "./src/index.ts",
   "dependencies": {},
   "devDependencies": {
-    "typescript": "^3.4.5"
+    "ts-node": "^8.0.3",
+    "typescript": "^3.4.3"
   },
-  "description": ""
+  "scripts": {
+    "watch": "tsc -w",
+    "build": "tsc",
+    "start": "ts-node src/Test.ts"
+  },
+  "author": "jonah kalkman",
+  "license": "ISC"
 }
